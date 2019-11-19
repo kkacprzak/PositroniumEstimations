@@ -26,6 +26,7 @@ std::map<std::string, TH1F*> PsEstimationTools::makeHistMap(double step)
     INTERVALS, ACT_MIN-step/2, ACT_MAX-step/2
   );
   goodHist->GetXaxis()->SetTitle("Source activity [MBq]");
+  goodHist->GetYaxis()->SetTitle("Number of deex-oPs coincidences / timeslot [1/#mus]");
   goodHist->SetLineColorAlpha(kGreen, 1);
   goodHist->SetLineWidth(3);
 
@@ -33,6 +34,7 @@ std::map<std::string, TH1F*> PsEstimationTools::makeHistMap(double step)
     INTERVALS, ACT_MIN-step/2, ACT_MAX-step/2
   );
   badHist->GetXaxis()->SetTitle("Source activity [MBq]");
+  goodHist->GetYaxis()->SetTitle("Number of deex-oPs coincidences / timeslot [1/#mus]");
   badHist->SetLineColorAlpha(kRed, 1);
   badHist->SetLineWidth(3);
 
@@ -58,6 +60,7 @@ std::map<std::string, TH1F*> PsEstimationTools::makeHistMap(double step)
   histogramMap["bad"] = badHist;
   histogramMap["deex_times"] = deexHist;
   histogramMap["oPs_gen_times"] = oPsHist;
+  histogramMap["pPs_gen_times"] = pPsHist;
 
   for(double activity=ACT_MIN; activity<ACT_MAX; activity+=step){
     TH1F* oPsObsHist = new TH1F(Form("oPs_obs_%f", activity), "  ", 200, 0.0, 10.0*ORTHO_LIFETIME);
@@ -110,7 +113,7 @@ std::vector<PsEvent> PsEstimationTools::generateEvents(
           // generate times for deex and pPs
           double pPsRelTime = gRandom->Exp(PARA_LIFETIME);
           double pPsAbsTime = deexAbsTime + pPsRelTime;
-          histogramMap.at("pPs_times")->Fill(pPsRelTime);
+          histogramMap.at("pPs_gen_times")->Fill(pPsRelTime);
 
           // Creating objects and setting as piared events
           PsEvent deex(deexAbsTime, gRandom->Uniform(), PsEvent::ONE_GAMMA, PsEvent::DEEX);
@@ -224,10 +227,12 @@ void PsEstimationTools::drawHistograms(std::map<std::string, TH1F*>& histogramMa
   gStyle->SetOptStat(0);
 
   // Calculations were repeted several times to make some average
-  // Normalising histograms to 1.
+  // Normalising lifetime histograms to 1.
   histogramMap.at("oPs_gen_times")->Scale(1.0/histogramMap.at("oPs_gen_times")->Integral(), "width");
-  histogramMap.at("good")->Scale(1.0/histogramMap.at("good")->Integral(), "width");
-  histogramMap.at("bad")->Scale(1.0/histogramMap.at("bad")->Integral(), "width");
+
+  // Scaling number of events by timeslot, units [1/us]
+  histogramMap.at("good")->Scale(1.0/TIMESLOT);
+  histogramMap.at("bad")->Scale(1.0/TIMESLOT);
 
   // Drawing and saving to a file
   for(double activity=ACT_MIN; activity<ACT_MAX; activity+=step){
@@ -240,17 +245,17 @@ void PsEstimationTools::drawHistograms(std::map<std::string, TH1F*>& histogramMa
     histogramMap.at(Form("oPs_obs_%f", activity))->Draw("hist");
     histogramMap.at("oPs_gen_times")->Draw("hist same");
     legend1->Draw();
-    c1->SaveAs(Form("lifetimes_%f.png", activity));
+    c1->SaveAs(Form("png/lifetimes_%f.png", activity));
   }
 
   TCanvas* c2 = new TCanvas("counts", "Events number", 800, 800);
   c2->SetLogy();
-  auto legend2 = new TLegend(0.1, 0.8, 0.4, 0.9);
+  auto legend2 = new TLegend(0.1, 0.83, 0.37, 0.9);
   legend2->SetHeader("Coincidences", "C");
   legend2->AddEntry(histogramMap.at("good"), "True", "l");
   legend2->AddEntry(histogramMap.at("bad"), "Accidental", "l");
   histogramMap.at("bad")->Draw("hist");
   histogramMap.at("good")->Draw("hist same");
   legend2->Draw();
-  c2->SaveAs("accidentals.png");
+  c2->SaveAs("png/accidentals.png");
 }

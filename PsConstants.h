@@ -7,7 +7,7 @@ const double PARA_LIFETIME = 0.000125;
 
 // Ortho-Para fraction
 const double OPS2PPS = 1.0;
-// double OPS2PPS = 0.289;
+// const double OPS2PPS = 0.289;
 
 // Electron capture ratio
 const double ELECAP = 0.0;
